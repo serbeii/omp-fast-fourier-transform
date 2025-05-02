@@ -8,7 +8,6 @@
 int thread_count = 1;
 
 #define FFT_TASK_CUTOFF 4096
-#define FFT_LOOP_CUTOFF 512
 // #define DEBUG
 
 typedef complex double cplx;
