@@ -8,7 +8,7 @@
 
 #define FFT_TASK_CUTOFF 4096
 #define FFT_LOOP_CUTOFF 8192
-//#define DEBUG
+// #define DEBUG
 
 typedef complex double cplx;
 int dynamic_scheduling = 0;
@@ -16,6 +16,9 @@ int dynamic_scheduling = 0;
 void parallel_fft(cplx x1[], cplx x2[], int N);
 void fft(cplx x[], int N, int s);
 void generate_data(cplx* x, int N);
+
+unsigned long long dynamic_tasks = 0;
+unsigned long long guided_tasks = 0;
 
 int main(int argc, char** argv) {
     int signal_size = 4096;
@@ -75,7 +78,8 @@ void parallel_fft(cplx x1[], cplx x2[], int N) {
     }
     finish = omp_get_wtime();
     elapsed = finish - start;
-    printf("Guided scheduling finished in %e seconds.\n", elapsed);
+    printf("Guided scheduling finished in %e seconds, created %lld tasks.\n",
+           elapsed, guided_tasks);
 
     start = omp_get_wtime();
     dynamic_scheduling = 1;
@@ -86,7 +90,8 @@ void parallel_fft(cplx x1[], cplx x2[], int N) {
     }
     finish = omp_get_wtime();
     elapsed = finish - start;
-    printf("Dynamic scheduling finished in %e seconds.\n", elapsed);
+    printf("Dynamic scheduling finished in %e seconds, created %lld tasks.\n",
+           elapsed, guided_tasks);
 }
 
 void fft(cplx x[], int N, int s) {
@@ -94,6 +99,13 @@ void fft(cplx x[], int N, int s) {
         return;
     } else {
         if (N > FFT_TASK_CUTOFF) {
+            if (dynamic_scheduling == 1) {
+#pragma omp critical
+                dynamic_tasks += 2;
+            } else {
+#pragma omp critical
+                guided_tasks += 2;
+            }
 #pragma omp task
             fft(x, N / 2, 2 * s);
 #pragma omp task
